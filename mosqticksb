@@ -1,0 +1,117 @@
+import tensorflow as tf
+from keras import layers, models
+from keras.preprocessing.image import ImageDataGenerator
+import matplotlib.pyplot as plt
+
+
+# Define data paths
+train_dir = r'C:\Okins\School Files\3rd Year 1st Semester\Computational Science\NN\mosq or ticks bites\train'
+test_dir = r'C:\Okins\School Files\3rd Year 1st Semester\Computational Science\NN\mosq or ticks bites\test'
+
+# Data augmentation and normalization
+train_datagen = ImageDataGenerator(
+    rescale=1./255,
+    rotation_range=20,
+    width_shift_range=0.2,
+    height_shift_range=0.2,
+    shear_range=0.2,
+    zoom_range=0.2,
+    horizontal_flip=True,
+    fill_mode='nearest'
+)
+
+test_datagen = ImageDataGenerator(rescale=1./255)
+
+# Flow training images in batches using train_datagen generator
+train_generator = train_datagen.flow_from_directory(
+    train_dir,
+    target_size=(380, 340),  # Adjust based on your image dimensions
+    batch_size=2,
+    class_mode='binary'  # 'binary' for two classes (mosquito, tick)
+)
+
+# Flow validation images in batches using test_datagen generator
+test_generator = test_datagen.flow_from_directory(
+    test_dir,
+    target_size=(380, 340),  # Adjust based on your image dimensions
+    batch_size=3,
+    class_mode='binary'
+)
+
+# Build the CNN model
+model = models.Sequential()
+model.add(layers.Conv2D(32, (3, 3), activation='relu', input_shape=(380, 340, 3)))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Conv2D(64, (3, 3), activation='relu'))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Conv2D(128, (3, 3), activation='relu'))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Flatten())
+model.add(layers.Dense(512, activation='relu'))
+model.add(layers.Dense(1, activation='sigmoid'))  # Binary classification
+
+# Compile the model
+model.compile(optimizer='adam',
+              loss='binary_crossentropy',
+              metrics=['accuracy'])
+
+# Train the model
+history = model.fit(
+    train_generator,
+    steps_per_epoch=train_generator.samples // train_generator.batch_size,
+    epochs=5,
+    validation_data=test_generator,
+    validation_steps=test_generator.samples // test_generator.batch_size
+)
+
+# Evaluate the model
+test_loss, test_acc = model.evaluate(test_generator)
+print(f'Test accuracy: {test_acc}')
+
+# Plot training history
+plt.plot(history.history['accuracy'], label='Training Accuracy')
+plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
+plt.xlabel('Epoch')
+plt.ylabel('Accuracy')
+plt.legend()
+plt.show()
+
+model.save("mosqticksbit.h5")
+################################################################################
+
+# from keras.preprocessing import image
+# from keras.applications.imagenet_utils import decode_predictions
+# import numpy as np
+
+# # Assume img_paths is a list containing file paths to the images you want to predict
+# img_paths = [
+#     r"C:\Okins\School Files\3rd Year 1st Semester\Computational Science\NN\mosq or ticks bites\test\mosquito\mosquito-400x267.jpg"
+# ]
+
+# # Load the model (replace 'your_model.h5' with the actual model file)
+# model = tf.keras.models.load_model('mosqticksbit.h5')
+
+# # Create a list to store predictions
+# predictions_list = []
+
+# # Loop through each image path and make predictions
+# for img_path in img_paths:
+#     img = image.load_img(img_path, target_size=(400, 267))  # Adjust target_size based on your model
+#     img_array = image.img_to_array(img)
+#     img_array = np.expand_dims(img_array, axis=0)
+#     img_array /= 255.0  # Normalize pixel values
+
+#     # Make predictions
+#     predictions = model.predict(img_array)
+
+#     # Decode and append predictions to the list
+#     decoded_predictions = decode_predictions(predictions)
+#     predictions_list.append(decoded_predictions)
+
+# # Print or use the predictions as needed
+# for i, predictions in enumerate(predictions_list):
+#     print(f"Predictions for image {i + 1}:")
+#     for _, label, confidence in predictions[0]:
+#         print(f"{label}: {confidence}")
+#     print()
+
